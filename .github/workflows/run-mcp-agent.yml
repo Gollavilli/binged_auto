@@ -24,6 +24,9 @@ jobs:
           npm run build
           npm install openai dotenv
 
+      - name: Move agent file into MCP folder
+        run: cp agent-runner.mjs playwright-mcp/
+
       - name: Run MCP agent
         run: |
           cd playwright-mcp
