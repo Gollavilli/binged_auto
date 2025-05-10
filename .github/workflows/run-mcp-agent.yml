@@ -21,7 +21,8 @@ jobs:
           git clone https://github.com/microsoft/playwright-mcp.git
           cd playwright-mcp
           npm install
-          npm run build
+          npm run build || (echo "🔴 MCP build failed" && exit 1)
+          test -f dist/index.js || (echo "❌ dist/index.js was not created" && exit 1)
           npm install openai dotenv
 
       - name: Write agent-runner script into MCP folder (via base64 decode)
