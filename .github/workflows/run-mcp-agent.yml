@@ -28,7 +28,7 @@ jobs:
 
       - name: Copy agent-runner into MCP folder
         run: |
-          cp ../agent-runner.mjs playwright-mcp/agent-runner.mjs
+          cp ./agent-runner.mjs playwright-mcp/agent-runner.mjs
 
       - name: Run MCP agent
         run: |
