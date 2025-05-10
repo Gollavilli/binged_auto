@@ -29,21 +29,21 @@ jobs:
       - name: Write agent-runner script into MCP folder (via base64 decode)
         run: |
           echo "aW1wb3J0IHsgTUNQU2VydmVyLCBNQ1BDbGllbnQgfSBmcm9tICIuL2xpYi9pbmRleC5qcyI7CmltcG9ydCBPcGVuQUk
-gZnJvbSBvcGVuYWk7CmltcG9ydCAqIGFzIGRvdGVudiBmcm9tICJkb3RlbnYiO2RvdGVudi5jb25maWcoKTsgY29uc3
-QgYXBpS2V5ID0gcHJvY2Vzcy5lbnYuT1BFTkFJX0FQSV9LRVk7Cgpjb25zdCBpbnN0cnVjdGlvbiA9IHByb2Nlc3MuYX
-JndlsxXTsKZXhwZXJpbWVudC5tYWludGVuYW5jZSA9IHRydWU7CmNvbnN0IHJ1biA9IGFzeW5jICgpID0+IHsKICAvLy
-BMYXVuY2ggMUNQU2VydmVyCiAgY29uc3Qgc2VydmVyID0gYXdhaXQgTUNQU2VydmVyLmxhdW5jaCgpOwogIGNvbnN0IGN
-saWVudCA9IGF3YWl0IHRDQ1Bs
-aWVudC5jb25uZWN0KHNlcnZlci53c0VuZHBvaW50KCkpOwoKICAvLyBHb3RvIHBhZ2UKICBhd2FpdCBjbGllbnQucGFnZS
-5nb3RvKCdodHRwczovL2dpdGh1Yi5jb20vRGF0YURvZy9oZWxtLWNoYXJ0cy9yZWxlYXNlcycpOwoKICAvLyBTbmFwc2hv
-dCBhbmQgQVBJIGNhbGwKICBjb25zdCBzbmFwc2hvdCA9IGF3YWl0IGNsaWVudC5wYWdlLmFjY2Vzc2liaWxpdHkuc25h
-cHNob3QoKTsgCiAgY29uc3QgdXNlck1lc3NhZ2UgPSAiSW5zdHJ1Y3Rpb246ICIgKyBpbnN0cnVjdGlvbiArICJcblxuU
-25hcHNob3Q6ICIgKyBKU09OLnN0cmluZ2lmeShzbmFwc2hvdCkuc2xpY2UoMCwgMTIwMDApICs
-gIi4uLiI7Cgpjb25zdCBjaGF0ID0gYXdhaXQgT3BlbkFJLmNoYXQuY29tcGxldGlvbnMuY3JlYXRlKHttb2RlbD
-ogImdwdC00IixtZXNzYWdlczpbIHsgcm9sZTogInN5c3RlbSIsIGNvbnRlbnQ6ICJZb3UgYXJlIGEgZm FrZXIuIiB9
-LCAgeyByb2xlOiAidXNlciIsIGNvbnRlbnQ6IHVzZXJNZXNzYWdlIH0gXX0pOwoKICBjb25zb2xlLmxvZygi4p2ZIEdQ
-Sy00IE91dHB1dDpcbiIsIGNoYXQudXNlck1lc3NhZ2UpOwoKICBhd2FpdCBjbGllbnQuY2xvc2UoKTsgCiAgY29uc3Qgc
-2VydmVyLnN1cHBvcnQoKTsgCn07CgpydW4oKTsg" | base64 -d > playwright-mcp/agent-runner.mjs
+                gZnJvbSBvcGVuYWk7CmltcG9ydCAqIGFzIGRvdGVudiBmcm9tICJkb3RlbnYiO2RvdGVudi5jb25maWcoKTsgY29uc3
+                QgYXBpS2V5ID0gcHJvY2Vzcy5lbnYuT1BFTkFJX0FQSV9LRVk7Cgpjb25zdCBpbnN0cnVjdGlvbiA9IHByb2Nlc3MuYX
+                JndlsxXTsKZXhwZXJpbWVudC5tYWludGVuYW5jZSA9IHRydWU7CmNvbnN0IHJ1biA9IGFzeW5jICgpID0+IHsKICAvLy
+                BMYXVuY2ggMUNQU2VydmVyCiAgY29uc3Qgc2VydmVyID0gYXdhaXQgTUNQU2VydmVyLmxhdW5jaCgpOwogIGNvbnN0IGN
+                saWVudCA9IGF3YWl0IHRDQ1Bs
+                aWVudC5jb25uZWN0KHNlcnZlci53c0VuZHBvaW50KCkpOwoKICAvLyBHb3RvIHBhZ2UKICBhd2FpdCBjbGllbnQucGFnZS
+                5nb3RvKCdodHRwczovL2dpdGh1Yi5jb20vRGF0YURvZy9oZWxtLWNoYXJ0cy9yZWxlYXNlcycpOwoKICAvLyBTbmFwc2hv
+                dCBhbmQgQVBJIGNhbGwKICBjb25zdCBzbmFwc2hvdCA9IGF3YWl0IGNsaWVudC5wYWdlLmFjY2Vzc2liaWxpdHkuc25h
+                cHNob3QoKTsgCiAgY29uc3QgdXNlck1lc3NhZ2UgPSAiSW5zdHJ1Y3Rpb246ICIgKyBpbnN0cnVjdGlvbiArICJcblxuU
+                25hcHNob3Q6ICIgKyBKU09OLnN0cmluZ2lmeShzbmFwc2hvdCkuc2xpY2UoMCwgMTIwMDApICs
+                gIi4uLiI7Cgpjb25zdCBjaGF0ID0gYXdhaXQgT3BlbkFJLmNoYXQuY29tcGxldGlvbnMuY3JlYXRlKHttb2RlbD
+                ogImdwdC00IixtZXNzYWdlczpbIHsgcm9sZTogInN5c3RlbSIsIGNvbnRlbnQ6ICJZb3UgYXJlIGEgZm FrZXIuIiB9
+                LCAgeyByb2xlOiAidXNlciIsIGNvbnRlbnQ6IHVzZXJNZXNzYWdlIH0gXX0pOwoKICBjb25zb2xlLmxvZygi4p2ZIEdQ
+                Sy00IE91dHB1dDpcbiIsIGNoYXQudXNlck1lc3NhZ2UpOwoKICBhd2FpdCBjbGllbnQuY2xvc2UoKTsgCiAgY29uc3Qgc
+                2VydmVyLnN1cHBvcnQoKTsgCn07CgpydW4oKTsg" | base64 -d > playwright-mcp/agent-runner.mjs
 
       - name: Run MCP agent
         run: |
