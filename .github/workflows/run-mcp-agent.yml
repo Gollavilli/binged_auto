@@ -1,0 +1,32 @@
+name: Run MCP + OpenAI from Source
+
+on:
+  workflow_dispatch:
+
+jobs:
+  agent-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Clone and Build MCP from GitHub
+        run: |
+          git clone https://github.com/microsoft/playwright-mcp.git
+          cp agent-runner.mjs playwright-mcp/
+          cd playwright-mcp
+          npm install
+          npm run build
+          npm install openai dotenv
+
+      - name: Run MCP agent
+        run: |
+          cd playwright-mcp
+          node agent-runner.mjs "Get the latest release tag from https://github.com/DataDog/helm-charts"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
