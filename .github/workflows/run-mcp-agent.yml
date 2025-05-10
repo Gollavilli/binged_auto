@@ -1,6 +1,9 @@
 name: Check Latest Helm Chart Releases
 
 on:
+  schedule:
+    # Run once a day at midnight UTC
+    - cron: '0 0 * * *'
   workflow_dispatch:
     # Allow manual triggering
 
@@ -18,8 +21,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          npm init -y
-          npm install playwright-core @playwright/test playwright-mcp dotenv axios
+          npm install
 
       - name: Create script directory
         run: mkdir -p scripts
@@ -28,15 +30,45 @@ jobs:
         run: |
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
+      - name: Create package.json for ES modules
+        run: |
+          cat > package.json << 'EOL'
+          {
+            "name": "helm-chart-tracker",
+            "version": "1.0.0",
+            "description": "Track latest Helm chart releases",
+            "main": "scripts/check-helm-releases.js",
+            "type": "module",
+            "scripts": {
+              "start": "node scripts/check-helm-releases.js"
+            },
+            "dependencies": {
+              "playwright-core": "^1.38.0",
+              "@playwright/test": "^1.38.0",
+              "playwright-mcp": "^0.0.14",
+              "dotenv": "^16.3.1",
+              "axios": "^1.5.0"
+            }
+          }
+          EOL
+
       - name: Create Helm chart checker script
         run: |
           cat > scripts/check-helm-releases.js << 'EOL'
-          const { chromium } = require('@playwright/test');
-          const { MultiModalController } = require('playwright-mcp');
-          const fs = require('fs');
-          const path = require('path');
-          const axios = require('axios');
-          require('dotenv').config();
+          import { chromium } from '@playwright/test';
+          import { MultiModalController } from 'playwright-mcp';
+          import fs from 'fs';
+          import path from 'path';
+          import axios from 'axios';
+          import dotenv from 'dotenv';
+          import { fileURLToPath } from 'url';
+          
+          // Set up ES modules path handling
+          const __filename = fileURLToPath(import.meta.url);
+          const __dirname = path.dirname(__filename);
+          
+          // Configure dotenv
+          dotenv.config();
 
           // Configuration
           const helmRepos = [
@@ -241,9 +273,12 @@ jobs:
 
           main();
           EOL
+          
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
 
       - name: Run Helm chart checker
-        run: node scripts/check-helm-releases.js
+        run: npm start
 
       - name: Commit and push changes if any
         run: |
