@@ -1,291 +1,109 @@
-name: Check Latest Helm Chart Releases
+name: Playwright MCP Action
 
 on:
-  schedule:
-    # Run once a day at midnight UTC
-    - cron: '0 0 * * *'
   workflow_dispatch:
-    # Allow manual triggering
+    inputs:
+      prompt:
+        description: 'Task prompt for the AI'
+        required: true
+        default: 'get the latest 5 release versions of the datadog helm : https://github.com/DataDog/helm-charts'
 
 jobs:
-  check-helm-releases:
+  playwright-mcp:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          
+
       - name: Install dependencies
         run: |
-          npm install
+          npm init -y
+          npm install playwright @playwright/test axios dotenv
 
-      - name: Create script directory
-        run: mkdir -p scripts
-
-      - name: Create environment file
-        run: |
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
-
-      - name: Create package.json for ES modules
-        run: |
-          cat > package.json << 'EOL'
-          {
-            "name": "helm-chart-tracker",
-            "version": "1.0.0",
-            "description": "Track latest Helm chart releases",
-            "main": "scripts/check-helm-releases.js",
-            "type": "module",
-            "scripts": {
-              "start": "node scripts/check-helm-releases.js"
-            },
-            "dependencies": {
-              "playwright-core": "^1.38.0",
-              "@playwright/test": "^1.38.0",
-              "playwright-mcp": "^0.0.14",
-              "dotenv": "^16.3.1",
-              "axios": "^1.5.0"
-            }
-          }
-          EOL
-
-      - name: Create Helm chart checker script
-        run: |
-          cat > scripts/check-helm-releases.js << 'EOL'
-          import { chromium } from '@playwright/test';
-          import { MultiModalController } from 'playwright-mcp';
-          import fs from 'fs';
-          import path from 'path';
-          import axios from 'axios';
-          import dotenv from 'dotenv';
-          import { fileURLToPath } from 'url';
-          
-          // Set up ES modules path handling
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname = path.dirname(__filename);
-          
-          // Configure dotenv
-          dotenv.config();
-
-          // Configuration
-          const helmRepos = [
-            {
-              name: 'datadog',
-              url: 'https://github.com/DataDog/helm-charts',
-              chartsPath: '/tree/main/charts', // Path to charts directory within repo
-              outputFile: 'datadog-helm-versions.json'
-            }
-            // Add more repositories as needed
-          ];
-
-          async function getLatestChartVersions(page, controller, repo) {
-            console.log(`Checking ${repo.name} Helm chart releases...`);
-            
-            // Navigate to the repository
-            await page.goto(repo.url + repo.chartsPath);
-            await page.waitForLoadState('networkidle');
-            
-            const task = `
-              You are helping me extract information about Helm charts from the GitHub page I'm currently on.
-              
-              1. Identify all the Helm charts available in this repository.
-              2. For each chart, I need to know:
-                 - The chart name
-                 - The latest version (if visible)
-                 - The chart description (if available)
-              
-              Return the information as a valid JSON array of objects with properties: name, version, description.
-              If some information is not available, include the property with a null value.
-            `;
-            
-            const response = await controller.runTask(task);
-            console.log(`Response from MCP for ${repo.name}:`, response);
-            
-            let chartsInfo;
-            try {
-              // Extract the JSON object from the response
-              const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/) || 
-                               response.match(/\[([\s\S]*?)\]/) ||
-                               response.match(/\{([\s\S]*?)\}/);
-                               
-              if (jsonMatch) {
-                const jsonText = jsonMatch[0];
-                chartsInfo = JSON.parse(jsonText);
-              } else {
-                // Try parsing the entire response as JSON
-                chartsInfo = JSON.parse(response);
-              }
-              
-              // Ensure chartsInfo is an array
-              if (!Array.isArray(chartsInfo)) {
-                if (typeof chartsInfo === 'object') {
-                  chartsInfo = [chartsInfo];
-                } else {
-                  throw new Error('Response is not a valid JSON array or object');
-                }
-              }
-            } catch (error) {
-              console.error(`Error parsing JSON from MCP response for ${repo.name}:`, error);
-              console.error('Raw response:', response);
-              return [];
-            }
-            
-            // For each chart, get more details if needed
-            for (const chart of chartsInfo) {
-              if (!chart.version || chart.version === null) {
-                try {
-                  // Navigate to the chart's directory to get more info
-                  if (chart.name) {
-                    const chartUrl = `${repo.url}${repo.chartsPath}/${chart.name}`;
-                    await page.goto(chartUrl);
-                    await page.waitForLoadState('networkidle');
-                    
-                    const chartTask = `
-                      From this chart's page, extract:
-                      1. The latest version of the chart (look for "Chart.yaml" file or version mentions)
-                      2. Any detailed description of the chart
-                      
-                      Return as a simple JSON with properties: version, description
-                    `;
-                    
-                    const chartResponse = await controller.runTask(chartTask);
-                    
-                    try {
-                      // Try to extract JSON from the response
-                      const chartJsonMatch = chartResponse.match(/```json\n([\s\S]*?)\n```/) || 
-                                           chartResponse.match(/\{([\s\S]*?)\}/);
-                                           
-                      if (chartJsonMatch) {
-                        const chartJsonText = chartJsonMatch[0];
-                        const chartDetails = JSON.parse(chartJsonText);
-                        
-                        // Update chart info with additional details
-                        if (chartDetails.version) chart.version = chartDetails.version;
-                        if (chartDetails.description && (!chart.description || chart.description === null)) {
-                          chart.description = chartDetails.description;
-                        }
-                      }
-                    } catch (error) {
-                      console.error(`Error parsing JSON from chart details for ${chart.name}:`, error);
-                    }
-                  }
-                } catch (error) {
-                  console.error(`Error getting details for chart ${chart.name}:`, error);
-                }
-              }
-            }
-            
-            return chartsInfo;
-          }
-
-          async function saveResults(repo, chartVersions) {
-            const outputDir = path.join(process.cwd(), 'helm-versions');
-            
-            // Create output directory if it doesn't exist
-            if (!fs.existsSync(outputDir)) {
-              fs.mkdirSync(outputDir, { recursive: true });
-            }
-            
-            const outputFile = path.join(outputDir, repo.outputFile);
-            
-            // Check if file exists to compare with previous versions
-            let previousVersions = [];
-            if (fs.existsSync(outputFile)) {
-              try {
-                previousVersions = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-              } catch (error) {
-                console.error(`Error reading previous versions from ${outputFile}:`, error);
-              }
-            }
-            
-            // Compare with previous versions to identify updates
-            const updates = chartVersions.filter(newChart => {
-              const previousChart = previousVersions.find(chart => chart.name === newChart.name);
-              return !previousChart || previousChart.version !== newChart.version;
-            });
-            
-            // Save new versions
-            fs.writeFileSync(outputFile, JSON.stringify(chartVersions, null, 2));
-            console.log(`Saved ${chartVersions.length} chart versions to ${outputFile}`);
-            
-            if (updates.length > 0) {
-              console.log(`Found ${updates.length} chart updates!`);
-              
-              // Create a report file
-              const reportFile = path.join(outputDir, `${repo.name}-updates.md`);
-              let report = `# Helm Chart Updates for ${repo.name}\n\n`;
-              report += `Date: ${new Date().toISOString()}\n\n`;
-              
-              updates.forEach(chart => {
-                const previousChart = previousVersions.find(c => c.name === chart.name);
-                const previousVersion = previousChart ? previousChart.version : 'Not found';
-                
-                report += `## ${chart.name}\n`;
-                report += `- Previous version: ${previousVersion}\n`;
-                report += `- New version: ${chart.version}\n`;
-                if (chart.description) {
-                  report += `- Description: ${chart.description}\n`;
-                }
-                report += '\n';
-              });
-              
-              fs.writeFileSync(reportFile, report);
-              console.log(`Update report saved to ${reportFile}`);
-              
-              // If you want to create an issue or PR, implement here
-            } else {
-              console.log('No chart updates found.');
-            }
-          }
-
-          async function main() {
-            // Check if OpenAI API key is set
-            if (!process.env.OPENAI_API_KEY) {
-              console.error('OPENAI_API_KEY environment variable not set');
-              process.exit(1);
-            }
-            
-            const browser = await chromium.launch({ headless: true });
-            try {
-              const page = await browser.newPage();
-              
-              // Initialize the MultiModalController with OpenAI
-              const controller = new MultiModalController(page, {
-                provider: 'openai',
-                apiKey: process.env.OPENAI_API_KEY,
-                model: 'gpt-4o'  // Use appropriate model
-              });
-              
-              for (const repo of helmRepos) {
-                const chartVersions = await getLatestChartVersions(page, controller, repo);
-                await saveResults(repo, chartVersions);
-              }
-            } catch (error) {
-              console.error('Error:', error);
-              process.exit(1);
-            } finally {
-              await browser.close();
-            }
-          }
-
-          main();
-          EOL
-          
-      - name: Install Playwright browsers
+      - name: Setup Playwright
         run: npx playwright install chromium
 
-      - name: Run Helm chart checker
-        run: npm start
-
-      - name: Commit and push changes if any
+      - name: Create MCP script
         run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          
-          git add helm-versions/
-          
-          # Only commit if there are changes
-          git diff --cached --exit-code || (git commit -m "Update Helm chart versions [skip ci]" && git push)
+          cat > playwright-mcp.js << 'EOF'
+          const { chromium } = require('playwright');
+          const axios = require('axios');
+          require('dotenv').config();
+
+          async function runTask(prompt) {
+            console.log(`Running task with prompt: ${prompt}`);
+            
+            // Parse the prompt to extract the repository URL
+            const repoUrlMatch = prompt.match(/https:\/\/github\.com\/([^\/]+)\/([^\/\s]+)/);
+            if (!repoUrlMatch) {
+              console.error('No valid GitHub repository URL found in the prompt');
+              return;
+            }
+            
+            const owner = repoUrlMatch[1];
+            const repo = repoUrlMatch[2];
+            
+            try {
+              // Use GitHub API to fetch releases (doesn't require browser automation)
+              const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/releases`, {
+                headers: {
+                  'Accept': 'application/vnd.github.v3+json',
+                  ...(process.env.GITHUB_TOKEN ? { 'Authorization': `token ${process.env.GITHUB_TOKEN}` } : {})
+                }
+              });
+              
+              // Get the latest 5 releases
+              const latestReleases = response.data.slice(0, 5);
+              
+              console.log(`\n==== Latest 5 releases for ${owner}/${repo} ====`);
+              latestReleases.forEach((release, index) => {
+                console.log(`${index + 1}. ${release.tag_name} - Released on: ${new Date(release.published_at).toLocaleDateString()}`);
+              });
+              
+              // For more complex tasks, we could use browser automation with Playwright
+              if (prompt.includes('use browser')) {
+                const browser = await chromium.launch();
+                const context = await browser.newContext();
+                const page = await context.newPage();
+                
+                await page.goto(`https://github.com/${owner}/${repo}/releases`);
+                console.log(`\nBrowser visited: https://github.com/${owner}/${repo}/releases`);
+                
+                // Additional browser automation logic would go here
+                
+                await browser.close();
+              }
+              
+              // If the prompt requires OpenAI integration
+              if (prompt.includes('use openai') && process.env.OPENAI_API_KEY) {
+                console.log('\nUsing OpenAI API to process the data...');
+                // Here you would add your OpenAI API integration
+                // Example: summarize the release notes, etc.
+              }
+              
+            } catch (error) {
+              console.error('Error executing task:', error.message);
+            }
+          }
+
+          // Main execution
+          const prompt = process.argv[2];
+          if (!prompt) {
+            console.error('No prompt provided. Usage: node playwright-mcp.js "your prompt here"');
+            process.exit(1);
+          }
+
+          runTask(prompt).then(() => process.exit(0));
+          EOF
+
+      - name: Run MCP with prompt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          node playwright-mcp.js "${{ github.event.inputs.prompt }}"
