@@ -1,4 +1,4 @@
-import { MCPServer, MCPClient } from "./dist/index.js";
+import { MCPServer, MCPClient } from "./lib/index.js";
 import OpenAI from "openai";
 import * as dotenv from "dotenv";
 dotenv.config();
