@@ -24,39 +24,9 @@ jobs:
           npm run build
           npm install openai dotenv
 
-      - name: Write agent-runner script into MCP folder
+      - name: Write agent-runner script into MCP folder (via base64 decode)
         run: |
-          cat <<EOF > playwright-mcp/agent-runner.mjs
-import { MCPServer, MCPClient } from "./dist/index.js";
-import OpenAI from "openai";
-import * as dotenv from "dotenv";
-dotenv.config();
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const INSTRUCTION = process.argv[2];
-
-const run = async () => {
-  const server = await MCPServer.launch();
-  const client = await MCPClient.connect(server.wsEndpoint());
-
-  await client.page.goto("https://github.com/DataDog/helm-charts/releases");
-  const snapshot = await client.page.accessibility.snapshot();
-
-  const chat = await openai.chat.completions.create({
-    model: "gpt-4",
-    messages: [
-      { role: "system", content: "You are a helpful browser agent." },
-      { role: "user", content: "Instruction: " + INSTRUCTION + "\\n\\nSnapshot: " + JSON.stringify(snapshot).slice(0, 12000) + "..." }
-    ]
-  });
-
-  console.log("🧠 GPT-4 Output:\\n", chat.choices[0].message.content);
-  await client.close();
-  await server.close();
-};
-
-run();
-EOF
+          echo "aW1wb3J0IHsgTUNQU2VydmVyLCBNQ1BDbGllbnQgfSBmcm9tICIuL2Rpc3QvaW5kZXguanMiOwppbXBvcnQgT3BlbkFJIGZyb20gIm9wZW5haSI7CmltcG9ydCAqIGFzIGRvdGVudiBmcm9tICJkb3RlbnYiOwpkb3RlbnYuY29uZmlnKCk7Cgpjb25zdCBvcGVuYWkgPSBuZXcgT3BlbkFJKHthcGlLZXk6IHByb2Nlc3MuZW52Lk9QRU5BSV9BUElfS0VZIH0pOwpjb25zdCBJTlNUUlVDVElPTiA9IHByb2Nlc3MuYXJndlsxXTsKCmNvbnN0IHJ1biA9IGFzeW5jICgpID0+IHsKICBjb25zdCBzZXJ2ZXIgPSBhd2FpdCBNQ1BTZXJ2ZXIubGF1bmNoKCk7CiAgY29uc3QgY2xpZW50ID0gYXdhaXQgTUNQQ2xpZW50LmNvbm5lY3Qoc2VydmVyLndzRW5kcG9pbnQoKSk7CgogIGF3YWl0IGNsaWVudC5wYWdlLmdvdG8oImh0dHBzOi8vZ2l0aHViLmNvbS9EYXRhRG9nL2hlbG0tY2hhcnRzL3JlbGVhc2VzIik7CiAgY29uc3Qgc25hcHNob3QgPSBhd2FpdCBjbGllbnQucGFnZS5hY2Nlc3NpYmlsaXR5LnNuYXBzaG90KCk7CgogIGNvbnN0IGNoYXQgPSBhd2FpdCBvcGVuYWkuY2hhdC5jb21wbGV0aW9ucy5jcmVhdGUoewogICAgbW9kZWw6ICJncHQtNCIsCiAgICBtZXNzYWdlczogWwogICAgeyByb2xlOiAic3lzdGVtIiwgY29udGVudDogIllvdSBhcmUgYSBoZWxwZnVsIGJyb3dzZXIgYWdlbnQuIiB9LAogICAgeyByb2xlOiAidXNlciIsIGNvbnRlbnQ6ICJJbnN0cnVjdGlvbjogIiArIElOU1RSVUNUSU9OICsgIlxcblxcbk5hcHNob3Q6ICIgKyBKU09OLnN0cmluZ2lmeShzbmFwc2hvdCkuc2xpY2UoMCwgMTIwMDApICsgIi4uLiIgfQogICAgXQogIH0pOwoKICBjb25zb2xlLmxvZygi8J+YjCBHUFQtNCBPdXRwdXQ6XG4iLCBjaGF0LmNob2ljZXNbMF0ubWVzc2FnZS5jb250ZW50KTsKICBhd2FpdCBjbGllbnQuY2xvc2UoKTsKICBhd2FpdCBzZXJ2ZXIuY2xvc2UoKTsKfTsKCnJ1bigpOw==" | base64 -d > playwright-mcp/agent-runner.mjs
 
       - name: Run MCP agent
         run: |
